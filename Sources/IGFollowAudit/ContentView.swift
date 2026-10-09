@@ -7,18 +7,21 @@ struct ContentView: View {
         @Bindable var model = model
 
         Group {
-            if let audit = model.audit {
-                ResultsView(audit: audit)
+            if model.audit != nil {
+                ResultsView()
             } else {
                 WelcomeView()
             }
         }
-        .frame(minWidth: 640, minHeight: 480)
+        .frame(minWidth: 720, minHeight: 520)
+        .tint(Theme.accent)
         .overlay {
             if model.isLoading {
                 ProgressView("Reading export…")
-                    .padding(24)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    .controlSize(.large)
+                    .padding(28)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: .black.opacity(0.12), radius: 20, y: 8)
             }
         }
         .fileImporter(isPresented: $model.isImporterPresented, allowedContentTypes: [.zip, .folder]) { result in

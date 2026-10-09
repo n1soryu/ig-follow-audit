@@ -10,6 +10,13 @@ The tool reads your exported data and gives you a plain list. You do the unfollo
 - **Reliable.** Scrapers break every time Instagram changes its site. The data export format rarely changes.
 - **Private.** Everything runs locally and your data never leaves your machine.
 
+<p align="center"><img src="Resources/Icon/AppIcon-1024.png" width="128" alt="App icon"></p>
+
+<p align="center">
+  <img src="docs/screenshots/welcome-light.png" width="49%" alt="Welcome screen">
+  <img src="docs/screenshots/results-light.png" width="49%" alt="Results (sample data)">
+</p>
+
 ## How it works
 
 1. Request your data from Instagram (see below).
@@ -39,10 +46,10 @@ connections/followers_and_following/
 
 ## Using the app
 
-- **Not Following Back** lists accounts you follow that don't follow you. **Fans** lists the reverse.
+- The sidebar has **Not Following Back** (accounts you follow that don't follow you), **Fans** (the reverse), plus everyone you follow and everyone who follows you.
 - Search, and sort by username or date (when you followed them, or when they followed you).
 - Double-click a row, or click **Open Profile**, to open the profile in your browser. Then unfollow in Instagram yourself.
-- Tick **Done** as you go. Your ticks are remembered between launches.
+- Tick the circle next to an account as you deal with it. Progress is shown at the top, and your ticks are remembered between launches.
 - Right-click rows to copy usernames or mark several as done. Use **Export CSV** in the toolbar to save the list.
 
 ## Building
@@ -65,7 +72,10 @@ Sources/IGFollowAudit/     the SwiftUI app
 Tests/                     tests; fake exports are generated at runtime
 Resources/                 Info.plist and sandbox entitlements
 scripts/build-app.sh       packages the .app
+scripts/make-icon.swift    regenerates Resources/AppIcon.icns
 ```
+
+Screenshots use generated sample data, not real accounts. In debug builds, `IGFA_SNAPSHOT=<dir> IGFA_EXPORT=<export> swift run` renders the window to PNGs, which is handy for checking UI changes.
 
 ## Project status
 
@@ -74,11 +84,15 @@ scripts/build-app.sh       packages the .app
 - [x] Compute non-followers-back (and fans)
 - [x] Mac app: drag and drop, search, sort, open profiles, Done tracking, CSV export
 - [x] Tests with fake export data
-- [ ] App icon
+- [x] App icon
 
 ## Privacy note
 
 Your Instagram export contains personal data. The `.gitignore` excludes `data/`, `*.zip`, and the export JSON files so you don't accidentally commit them. **Keep your exports in `data/`.**
+
+## Credits
+
+App icon glyph: [Lucide](https://lucide.dev) "user-round-search", ISC License (see `Resources/Icon/LUCIDE-LICENSE.txt`).
 
 ## License
 

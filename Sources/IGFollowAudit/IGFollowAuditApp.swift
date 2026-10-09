@@ -6,12 +6,19 @@ struct IGFollowAuditApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     private let model = AppModel()
 
+    init() {
+        #if DEBUG
+        DebugSnapshot.runIfRequested(model: model)
+        #endif
+    }
+
     var body: some Scene {
         Window("IG Follow Audit", id: "main") {
             ContentView()
                 .environment(model)
         }
-        .defaultSize(width: 860, height: 640)
+        .defaultSize(width: 980, height: 740)
+        .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Open Export…") { model.isImporterPresented = true }

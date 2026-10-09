@@ -4,8 +4,82 @@ import SwiftUI
 
 struct ResultsView: View {
     @Environment(AppModel.self) private var model
+
+    var body: some View {
+        NavigationSplitView {
+            Sidebar()
+                .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 300)
+        } detail: {
+            AccountList()
+        }
+    }
+}
+
+// MARK: - Sidebar
+
+private struct Sidebar: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        List(selection: Binding(get: { model.listKind }, set: { if let kind = $0 { model.listKind = kind } })) {
+            Section("Review") {
+                row(.notFollowingBack)
+                row(.fans)
+            }
+            Section("Everyone") {
+                row(.following)
+                row(.followers)
+            }
+        }
+        .listStyle(.sidebar)
+        .safeAreaInset(edge: .bottom) { source }
+    }
+
+    private func row(_ kind: AppModel.ListKind) -> some View {
+        Label(kind.title, systemImage: kind.systemImage)
+            .badge(model.accounts(in: kind).count)
+            .tag(kind)
+    }
+
+    /// The loaded export, with a button to close it.
+    private var source: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "doc.zipper")
+                .font(.title3)
+                .foregroundStyle(Theme.gradient)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(model.sourceName ?? "Export")
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("Loaded export")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button {
+                model.close()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .help("Close this export (⇧⌘W)")
+        }
+        .padding(10)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(10)
+    }
+}
+
+// MARK: - Account list
+
+private struct AccountList: View {
+    @Environment(AppModel.self) private var model
     @Environment(\.openURL) private var openURL
-    let audit: Audit
+
+    private var kind: AppModel.ListKind { model.listKind }
 
     private var rows: [Account] {
         let accounts = model.currentAccounts
@@ -14,92 +88,106 @@ struct ResultsView: View {
         return filtered.sorted(using: model.sortOrder)
     }
 
-    private var dateColumnTitle: String {
-        model.listKind == .notFollowingBack ? "You Followed Them" : "They Followed You"
-    }
-
     var body: some View {
         @Bindable var model = model
 
         VStack(spacing: 0) {
-            summary
-            Divider()
+            header
             table
-            Divider()
-            footer
         }
-        .navigationTitle("IG Follow Audit")
-        .navigationSubtitle(model.sourceName ?? "")
+        .hidingToolbarTitle()
+        .navigationTitle(kind.title)
         .searchable(text: $model.search, placement: .toolbar, prompt: "Search usernames")
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("List", selection: $model.listKind) {
-                    Text("Not Following Back (\(audit.notFollowingBack.count))").tag(AppModel.ListKind.notFollowingBack)
-                    Text("Fans (\(audit.fans.count))").tag(AppModel.ListKind.fans)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 Button("Export CSV", systemImage: "square.and.arrow.up") { model.isExporting = true }
                     .help("Save this list as a CSV file")
-                Button("Close", systemImage: "xmark.circle") { model.close() }
-                    .help("Close this export and open another")
             }
         }
         .fileExporter(
             isPresented: $model.isExporting,
             document: CSVDocument(accounts: rows),
             contentType: .commaSeparatedText,
-            defaultFilename: model.listKind == .notFollowingBack ? "not-following-back" : "fans"
+            defaultFilename: kind.fileName
         ) { _ in }
     }
 
-    // MARK: - Pieces
+    private var header: some View {
+        let accounts = model.currentAccounts
+        let doneCount = accounts.filter(model.isDone).count
 
-    private var summary: some View {
-        HStack(spacing: 12) {
-            StatTile(title: "Following", value: audit.following.count)
-            StatTile(title: "Followers", value: audit.followers.count)
-            StatTile(title: "Not Following Back", value: audit.notFollowingBack.count, highlighted: true)
-            StatTile(title: "Fans", value: audit.fans.count)
+        return HStack(alignment: .bottom, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(kind.title)
+                    .font(.system(size: 26, weight: .bold))
+                Text(kind.subtitle)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if !accounts.isEmpty {
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("\(doneCount) of \(accounts.count) done")
+                        .font(.callout.weight(.medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                    GradientProgressBar(fraction: Double(doneCount) / Double(accounts.count))
+                }
+                .help("Tick accounts off as you deal with them")
+            }
         }
-        .padding(16)
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
     }
 
     private var table: some View {
         @Bindable var model = model
 
         return Table(rows, selection: $model.selection, sortOrder: $model.sortOrder) {
-            TableColumn("Done") { account in
-                Toggle("Done", isOn: Binding(
-                    get: { model.isDone(account) },
-                    set: { model.setDone($0, for: [account.username]) }
-                ))
-                .toggleStyle(.checkbox)
-                .labelsHidden()
-                .help("Tick off accounts you've dealt with")
+            TableColumn("") { account in
+                DoneButton(account: account)
             }
-            .width(40)
+            .width(28)
 
-            TableColumn("Username", value: \.username) { account in
-                Text(account.username)
-                    .strikethrough(model.isDone(account))
-                    .foregroundStyle(model.isDone(account) ? .secondary : .primary)
+            TableColumn("Account", value: \.username) { account in
+                let isDone = model.isDone(account)
+                HStack(spacing: 10) {
+                    Avatar(username: account.username)
+                        .saturation(isDone ? 0 : 1)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(account.username)
+                            .font(.body.weight(.medium))
+                            .strikethrough(isDone)
+                        Text("instagram.com/\(account.username)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .opacity(isDone ? 0.55 : 1)
+                .padding(.vertical, 4)
             }
 
-            TableColumn(dateColumnTitle, value: \.sortDate) { account in
+            TableColumn(kind.dateTitle, value: \.sortDate) { account in
                 Text(account.date?.formatted(date: .abbreviated, time: .omitted) ?? "—")
                     .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
-            .width(min: 130, ideal: 150)
+            .width(min: 110, ideal: 130)
 
             TableColumn("") { account in
-                Button("Open Profile") { openURL(account.profileURL) }
-                    .buttonStyle(.link)
+                Button {
+                    openURL(account.profileURL)
+                } label: {
+                    Label("Open", systemImage: "arrow.up.right")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+                .help("Open \(account.username)'s profile in your browser")
             }
-            .width(100)
+            .width(80)
         }
+        .tableStyle(.inset(alternatesRowBackgrounds: false))
         .contextMenu(forSelectionType: Account.ID.self) { ids in
             if !ids.isEmpty {
                 Button(ids.count == 1 ? "Open Profile" : "Open \(ids.count) Profiles") { openProfiles(ids) }
@@ -114,31 +202,12 @@ struct ResultsView: View {
         .overlay {
             if rows.isEmpty {
                 if model.search.isEmpty {
-                    ContentUnavailableView(
-                        model.listKind == .notFollowingBack ? "Everyone Follows You Back" : "You Follow Everyone Back",
-                        systemImage: "checkmark.circle"
-                    )
+                    ContentUnavailableView(kind.emptyTitle, systemImage: "checkmark.seal")
                 } else {
                     ContentUnavailableView.search(text: model.search)
                 }
             }
         }
-    }
-
-    private var footer: some View {
-        let doneCount = model.currentAccounts.filter(model.isDone).count
-        return HStack {
-            Text("\(doneCount) of \(model.currentAccounts.count) done")
-                .monospacedDigit()
-            Spacer()
-            Text("Double-click a row to open the profile. Unfollow in the Instagram app; this app never touches your account.")
-                .lineLimit(1)
-                .truncationMode(.head)
-        }
-        .font(.callout)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
     }
 
     // MARK: - Actions
@@ -156,24 +225,34 @@ struct ResultsView: View {
     }
 }
 
-private struct StatTile: View {
-    let title: String
-    let value: Int
-    var highlighted = false
+/// A round check button for ticking an account off.
+private struct DoneButton: View {
+    @Environment(AppModel.self) private var model
+    let account: Account
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Text(value, format: .number)
-                .font(.title.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(highlighted ? Color.accentColor : .primary)
+        let isDone = model.isDone(account)
+        Button {
+            model.setDone(!isDone, for: [account.username])
+        } label: {
+            Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 17))
+                .foregroundStyle(isDone ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(.tertiary))
+                .contentTransition(.symbolEffect(.replace))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .buttonStyle(.plain)
+        .help(isDone ? "Mark as not done" : "Mark as done")
+    }
+}
+
+private extension View {
+    /// The list's title is already shown large in the header, so don't repeat it in the toolbar.
+    @ViewBuilder func hidingToolbarTitle() -> some View {
+        if #available(macOS 15, *) {
+            toolbar(removing: .title)
+        } else {
+            self
+        }
     }
 }
 

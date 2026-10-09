@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct WelcomeView: View {
@@ -6,41 +7,87 @@ struct WelcomeView: View {
     private var isTargeted: Bool { model.isDropTargeted }
 
     var body: some View {
-        VStack(spacing: 24) {
+        ZStack {
+            Backdrop()
+            // Centre the content when it fits, scroll when the window is short.
+            ViewThatFits(in: .vertical) {
+                content
+                ScrollView { content }
+            }
+        }
+        .toolbarBackground(.hidden, for: .windowToolbar)
+    }
+
+    private var content: some View {
+        VStack(spacing: 28) {
+            hero
             dropZone
-            instructions
-            Label("Everything stays on this Mac. The app has no network access.", systemImage: "lock.fill")
-                .font(.callout)
+            steps
+            privacyBadge
+        }
+        .padding(.horizontal, 40)
+        .padding(.vertical, 32)
+        .frame(maxWidth: 760)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Pieces
+
+    private var hero: some View {
+        VStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 96, height: 96)
+            Text("IG Follow Audit")
+                .font(.system(size: 34, weight: .bold))
+            Text("See who doesn't follow you back, privately, right on your Mac.")
+                .font(.title3)
                 .foregroundStyle(.secondary)
         }
-        .padding(32)
-        .frame(maxWidth: 620)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .multilineTextAlignment(.center)
     }
 
     private var dropZone: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "tray.and.arrow.down")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(isTargeted ? Color.accentColor : .secondary)
-            Text("Drop your Instagram export here")
-                .font(.title2.weight(.semibold))
-            Text("The .zip file from Instagram, or the folder you extracted it to.")
-                .foregroundStyle(.secondary)
-            Button("Choose File…") { model.isImporterPresented = true }
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .padding(.top, 4)
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Theme.gradient)
+                    .opacity(isTargeted ? 0.25 : 0.14)
+                    .frame(width: 76, height: 76)
+                Image(systemName: isTargeted ? "arrow.down.doc.fill" : "arrow.down.doc")
+                    .font(.system(size: 30, weight: .medium))
+                    .foregroundStyle(Theme.gradient)
+            }
+            VStack(spacing: 4) {
+                Text(isTargeted ? "Release to open" : "Drop your Instagram export here")
+                    .font(.title2.weight(.semibold))
+                Text("The .zip from Instagram, or the folder you extracted it to.")
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                model.isImporterPresented = true
+            } label: {
+                Label("Choose File…", systemImage: "folder")
+                    .padding(.horizontal, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isTargeted ? Color.accentColor.opacity(0.08) : Color.clear)
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(isTargeted ? Color.accentColor : .secondary.opacity(0.4),
-                              style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+        .padding(.vertical, 34)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(
+                    isTargeted ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(.separator),
+                    style: StrokeStyle(lineWidth: isTargeted ? 2.5 : 1.5, dash: isTargeted ? [] : [7, 5])
+                )
         }
+        .shadow(color: .black.opacity(isTargeted ? 0.12 : 0.06), radius: isTargeted ? 24 : 14, y: 6)
+        .scaleEffect(isTargeted ? 1.015 : 1)
+        .animation(.spring(duration: 0.3), value: isTargeted)
         .dropDestination(for: URL.self) { urls, _ in
             guard let url = urls.first else { return false }
             model.open(url)
@@ -50,28 +97,61 @@ struct WelcomeView: View {
         }
     }
 
-    private var instructions: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                step(1, "In Instagram, go to **Settings → Accounts Center → Your information and permissions → Download your information**.")
-                step(2, "Choose **Some of your information** and select only **Followers and following**.")
-                step(3, "Pick **Download to device**, with **Format: JSON** and **Date range: All time**.")
-                step(4, "When Instagram emails you, download the .zip and drop it above.")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(4)
-        } label: {
+    private var steps: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("How to get your export")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+                StepCard(number: 1, systemImage: "gearshape", title: "Open Settings",
+                         detail: "In Instagram: Accounts Center → Your information and permissions.")
+                StepCard(number: 2, systemImage: "arrow.down.circle", title: "Download your info",
+                         detail: "Choose Some of your information → Followers and following.")
+                StepCard(number: 3, systemImage: "curlybraces", title: "Pick JSON",
+                         detail: "Download to device, Format: JSON, Date range: All time.")
+                StepCard(number: 4, systemImage: "envelope", title: "Check your email",
+                         detail: "Download the .zip Instagram sends you and drop it above.")
+            }
         }
     }
 
-    private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("\(number).")
-                .monospacedDigit()
+    private var privacyBadge: some View {
+        Label("Private by design: no network access, nothing leaves your Mac.", systemImage: "lock.shield.fill")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: Capsule())
+    }
+}
+
+private struct StepCard: View {
+    let number: Int
+    let systemImage: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("\(number)")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(Theme.gradient, in: Circle())
+                Spacer()
+                Image(systemName: systemImage)
+                    .foregroundStyle(.secondary)
+            }
+            Text(title)
+                .font(.headline)
+            Text(detail)
+                .font(.callout)
                 .foregroundStyle(.secondary)
-            Text(text)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

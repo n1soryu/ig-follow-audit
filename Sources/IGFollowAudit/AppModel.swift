@@ -5,8 +5,61 @@ import Observation
 @MainActor @Observable
 final class AppModel {
     enum ListKind: String, CaseIterable, Identifiable {
-        case notFollowingBack, fans
+        case notFollowingBack, fans, following, followers
         var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .notFollowingBack: "Not Following Back"
+            case .fans: "Fans"
+            case .following: "Following"
+            case .followers: "Followers"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .notFollowingBack: "People you follow who don't follow you back."
+            case .fans: "People who follow you that you don't follow back."
+            case .following: "Everyone you follow."
+            case .followers: "Everyone who follows you."
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .notFollowingBack: "person.badge.minus"
+            case .fans: "heart"
+            case .following: "person.badge.plus"
+            case .followers: "person.2"
+            }
+        }
+
+        /// What the date in the export means for this list.
+        var dateTitle: String {
+            switch self {
+            case .notFollowingBack, .following: "Followed On"
+            case .fans, .followers: "Followed You On"
+            }
+        }
+
+        var emptyTitle: String {
+            switch self {
+            case .notFollowingBack: "Everyone Follows You Back"
+            case .fans: "You Follow Everyone Back"
+            case .following: "You Don't Follow Anyone"
+            case .followers: "No Followers Yet"
+            }
+        }
+
+        var fileName: String {
+            switch self {
+            case .notFollowingBack: "not-following-back"
+            case .fans: "fans"
+            case .following: "following"
+            case .followers: "followers"
+            }
+        }
     }
 
     struct LoadError: Identifiable {
@@ -44,8 +97,17 @@ final class AppModel {
     }
 
     var currentAccounts: [Account] {
+        accounts(in: listKind)
+    }
+
+    func accounts(in kind: ListKind) -> [Account] {
         guard let audit else { return [] }
-        return listKind == .notFollowingBack ? audit.notFollowingBack : audit.fans
+        switch kind {
+        case .notFollowingBack: return audit.notFollowingBack
+        case .fans: return audit.fans
+        case .following: return audit.following
+        case .followers: return audit.followers
+        }
     }
 
     func open(_ url: URL) {
