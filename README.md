@@ -72,26 +72,34 @@ If you picked **HTML** instead of JSON, the app will tell you. Request the expor
 
 ## Install
 
-There are no prebuilt downloads. You build it yourself, which takes about a minute.
+### Download (easiest)
 
-**Requirements:** macOS 14 or later, and the Xcode Command Line Tools (full Xcode isn't needed):
+1. Download `IG-Follow-Audit-<version>.zip` from the [latest release](https://github.com/n1soryu/ig-follow-audit/releases/latest).
+2. Unzip it and drag **IG Follow Audit** into your **Applications** folder.
+3. Open it. The first time, macOS will block it (see below).
+
+Requires macOS 14 or later. It runs natively on both Apple Silicon and Intel Macs.
+
+**First launch:** the app isn't notarized by Apple (that needs a paid developer account), so macOS says it can't verify the app. To open it anyway:
+
+- Open **System Settings → Privacy & Security**, scroll down to the message about IG Follow Audit, and click **Open Anyway**. You only have to do this once.
+- Or, in Terminal: `xattr -dr com.apple.quarantine "/Applications/IG Follow Audit.app"`
+
+Only do this if you trust the download. The full source code is in this repo, so you can always build it yourself instead.
+
+### Build from source
+
+You need macOS 14 or later and the Xcode Command Line Tools (full Xcode isn't needed):
 
 ```bash
 xcode-select --install
-```
-
-**Build and run:**
-
-```bash
 git clone https://github.com/n1soryu/ig-follow-audit.git
 cd ig-follow-audit
 ./scripts/build-app.sh
 open "build/IG Follow Audit.app"
 ```
 
-You can drag `build/IG Follow Audit.app` into `/Applications`. The app is about 2 MB.
-
-It's ad-hoc signed, not notarized by Apple. If macOS won't open it the first time, right-click the app and choose **Open**.
+This builds a universal app, about 2 MB, at `build/IG Follow Audit.app`. Apps you build yourself aren't flagged as downloaded, so they open without the Gatekeeper prompt.
 
 ## Using the app
 
@@ -115,7 +123,8 @@ Sources/IGFollowAudit/     the SwiftUI app
 Tests/                     tests; fake exports are generated at runtime
 Resources/                 Info.plist, sandbox entitlements, app icon
 docs/screenshots/          README screenshots (sample data)
-scripts/build-app.sh       builds and signs the .app
+scripts/build-app.sh       builds and signs the universal .app
+scripts/package-release.sh zips the .app for a GitHub release
 scripts/test.sh            runs the tests
 scripts/make-icon.swift    regenerates Resources/AppIcon.icns
 ```
@@ -142,7 +151,7 @@ IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/sample-export swift run
 - Tested on one person's real export, on one Mac.
 - macOS only.
 - If Instagram changes the export format again, parsing may break.
-- No notarization, so you get Gatekeeper's first-launch prompt.
+- Not notarized, so downloaded copies need **Open Anyway** on first launch.
 
 ## How this was made
 
@@ -164,4 +173,4 @@ What was **not** done: a human code review, or testing with other people's expor
 
 ## License
 
-Private, for personal use.
+[MIT](LICENSE) © 2026 Niso Ryu. The Lucide icon glyph is under its own ISC License, which is also permissive.
