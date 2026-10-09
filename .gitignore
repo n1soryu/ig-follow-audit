@@ -24,3 +24,9 @@ venv/
 
 # --- Local agent tooling ---
 .atlas/
+
+# --- Swift build output ---
+.build/
+build/
+*.app
+.swiftpm/
