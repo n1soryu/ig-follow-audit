@@ -78,7 +78,7 @@ If you picked **HTML** instead of JSON, the app will tell you. Request the expor
 2. Unzip it and drag **IG Follow Audit** into your **Applications** folder.
 3. Open it. The first time, macOS will block it (see below).
 
-Requires macOS 14 or later. It runs natively on both Apple Silicon and Intel Macs.
+Requires macOS 14 or later. It runs natively on both Apple Silicon and Intel Macs. See the [changelog](CHANGELOG.md) for what changed in each version.
 
 **First launch:** the app isn't notarized by Apple (that needs a paid developer account), so macOS says it can't verify the app. To open it anyway:
 
