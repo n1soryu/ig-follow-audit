@@ -14,7 +14,7 @@
 > Every line of code, the tests, the icon and this README were written by an AI coding assistant ([Claude Code](https://claude.com/claude-code)) from plain-English prompts. The repository owner directed the work but did not write or review the code line by line.
 >
 > In practice that means:
-> - It has only been tested against **generated sample data**, not a real Instagram export yet.
+> - The owner has tested it on their own real Instagram export, and it worked as expected. It hasn't had any wider testing beyond that.
 > - There may be bugs nobody has noticed. Double-check before unfollowing anyone important.
 > - It comes with **no warranty or support**. Use it at your own risk.
 >
@@ -41,6 +41,9 @@ following  −  followers  =  people who don't follow you back
 - Open a profile in your browser, copy usernames, or export any list as CSV.
 
 The app **never logs in to Instagram and never unfollows anyone**. It only shows you a list. You do any unfollowing yourself in the Instagram app.
+
+> [!NOTE]
+> **Deactivated accounts show up too.** Instagram's export still lists accounts that have been deactivated, so the app shows them like any other account. They usually land in **Not Following Back**, because a deactivated account can't follow you. The export doesn't say which accounts are deactivated, and the app is offline, so it can't tell them apart. If **Open** takes you to Instagram's "Sorry, this page isn't available" page, the account is probably deactivated or deleted.
 
 ## Privacy
 
@@ -135,7 +138,8 @@ IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/sample-export swift run
 
 ## Known limitations
 
-- Not yet tested with a real Instagram export.
+- Deactivated accounts can't be detected or filtered out (see the note under [What it does](#what-it-does)).
+- Tested on one person's real export, on one Mac.
 - macOS only.
 - If Instagram changes the export format again, parsing may break.
 - No notarization, so you get Gatekeeper's first-launch prompt.
@@ -149,8 +153,9 @@ What was actually checked:
 - The automated tests pass. They use generated fake exports in both Instagram layouts, plus zip and folder variants and error cases.
 - The app builds, launches, and runs sandboxed.
 - The UI was checked using rendered screenshots of sample data.
+- The owner ran it on their own real Instagram export, and the results were correct. That's also how we learned that deactivated accounts appear in the lists.
 
-What was **not** done: a human code review, testing with a real export, or testing on other Macs and macOS versions. Treat it accordingly.
+What was **not** done: a human code review, or testing with other people's exports, on other Macs or on other macOS versions. Treat it accordingly.
 
 ## Credits
 
