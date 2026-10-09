@@ -52,7 +52,7 @@ Requires macOS 14+ and the Xcode Command Line Tools (`xcode-select --install`). 
 ```bash
 ./scripts/build-app.sh          # builds "build/IG Follow Audit.app"
 open "build/IG Follow Audit.app"
-swift test                      # runs the tests
+./scripts/test.sh                # runs the tests
 ```
 
 Drag the `.app` into `/Applications` if you like. It is ad-hoc signed, not notarized, so if macOS refuses to open it the first time, right-click it and choose **Open**.
