@@ -145,7 +145,7 @@ private struct AccountList: View {
 
         return Table(rows, selection: $model.selection, sortOrder: $model.sortOrder) {
             TableColumn("") { account in
-                DoneButton(account: account)
+                DoneButton(model: model, account: account)
             }
             .width(28)
 
@@ -188,6 +188,10 @@ private struct AccountList: View {
             .width(80)
         }
         .tableStyle(.inset(alternatesRowBackgrounds: false))
+        // A fresh table per list, search and sort. Diffing thousands of rows into an
+        // existing, scrolled table makes AppKit warn about reentrant delegate calls
+        // (a future assert). Tables only create visible rows, so rebuilding is cheap.
+        .id(TableIdentity(kind: kind, search: model.search, sortOrder: model.sortOrder))
         .contextMenu(forSelectionType: Account.ID.self) { ids in
             if !ids.isEmpty {
                 Button(ids.count == 1 ? "Open Profile" : "Open \(ids.count) Profiles") { openProfiles(ids) }
@@ -225,9 +229,18 @@ private struct AccountList: View {
     }
 }
 
+private struct TableIdentity: Hashable {
+    let kind: AppModel.ListKind
+    let search: String
+    let sortOrder: [KeyPathComparator<Account>]
+}
+
 /// A round check button for ticking an account off.
+///
+/// Takes the model directly rather than from the environment: table rows are
+/// recycled as you scroll, and recycled rows don't reliably inherit it.
 private struct DoneButton: View {
-    @Environment(AppModel.self) private var model
+    let model: AppModel
     let account: Account
 
     var body: some View {

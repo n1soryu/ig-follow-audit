@@ -74,7 +74,8 @@ final class AppModel {
     var loadError: LoadError?
     var isImporterPresented = false
     var listKind: ListKind = .notFollowingBack {
-        didSet { selection.removeAll() }
+        // Only write when needed: every write notifies SwiftUI, even an empty set.
+        didSet { if !selection.isEmpty { selection.removeAll() } }
     }
 
     // View state. It lives here rather than in SwiftUI's @State, which is a macro

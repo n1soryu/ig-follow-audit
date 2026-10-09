@@ -145,6 +145,12 @@ Quirks of building with only the Command Line Tools:
 IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/sample-export swift run
 ```
 
+**Scroll stress test:** debug builds can also load an export and scroll every list top to bottom, searching, sorting and ticking rows along the way. Use a large export, since problems only show up with thousands of rows:
+
+```bash
+IGFA_SCROLLTEST=1 IGFA_EXPORT=/path/to/export.zip swift run
+```
+
 ## Known limitations
 
 - Deactivated accounts can't be detected or filtered out (see the note under [What it does](#what-it-does)).
