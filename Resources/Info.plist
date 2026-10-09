@@ -10,6 +10,8 @@
 	<string>com.n1soryu.ig-follow-audit</string>
 	<key>CFBundleExecutable</key>
 	<string>IGFollowAudit</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
