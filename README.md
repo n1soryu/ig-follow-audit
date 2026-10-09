@@ -1,98 +1,161 @@
-# ig-follow-audit
+<p align="center">
+  <img src="Resources/Icon/AppIcon-1024.png" width="128" alt="IG Follow Audit icon">
+</p>
 
-Find the Instagram accounts you follow that don't follow you back, using **only Instagram's official "Download Your Information" export**. No scraping, no logging in, no API calls.
+<h1 align="center">IG Follow Audit</h1>
 
-The tool reads your exported data and gives you a plain list. You do the unfollowing yourself in the Instagram app, so nothing automated ever touches your account.
+<p align="center">
+  A small, offline Mac app that shows which Instagram accounts you follow don't follow you back,<br>
+  using only the data export Instagram gives you.
+</p>
 
-## Why
-
-- **Stays within the ToS.** It never logs in to Instagram or automates any actions. It only reads a file you downloaded yourself.
-- **Reliable.** Scrapers break every time Instagram changes its site. The data export format rarely changes.
-- **Private.** Everything runs locally and your data never leaves your machine.
-
-<p align="center"><img src="Resources/Icon/AppIcon-1024.png" width="128" alt="App icon"></p>
+> [!WARNING]
+> **This entire project was vibecoded.**
+> Every line of code, the tests, the icon and this README were written by an AI coding assistant ([Claude Code](https://claude.com/claude-code)) from plain-English prompts. The repository owner directed the work but did not write or review the code line by line.
+>
+> In practice that means:
+> - It has only been tested against **generated sample data**, not a real Instagram export yet.
+> - There may be bugs nobody has noticed. Double-check before unfollowing anyone important.
+> - It comes with **no warranty or support**. Use it at your own risk.
+>
+> See [How this was made](#how-this-was-made) for details.
 
 <p align="center">
   <img src="docs/screenshots/welcome-light.png" width="49%" alt="Welcome screen">
-  <img src="docs/screenshots/results-light.png" width="49%" alt="Results (sample data)">
+  <img src="docs/screenshots/results-light.png" width="49%" alt="Results screen with sample data">
 </p>
+<p align="center"><sub>Screenshots use made-up sample accounts.</sub></p>
 
-## How it works
+## What it does
 
-1. Request your data from Instagram (see below).
-2. Open **IG Follow Audit** and drop the downloaded `.zip` (or the extracted folder) onto the window.
-3. It compares `following` with `followers` and lists everyone you follow who doesn't follow you back.
+You request your data from Instagram, drop the `.zip` onto the app, and it compares the people you follow with the people who follow you:
 
 ```
 following  −  followers  =  people who don't follow you back
 ```
 
-The app is a native macOS app (SwiftUI), about 600 KB. It runs in the macOS App Sandbox **with no network permission**, so the system itself prevents it from sending anything anywhere.
+- **Not Following Back:** accounts you follow that don't follow you.
+- **Fans:** accounts that follow you that you don't follow back.
+- **Following / Followers:** the full lists.
+- Search, sort by name or date, and tick accounts off as you go. Progress is saved between launches.
+- Open a profile in your browser, copy usernames, or export any list as CSV.
 
-## Getting your data from Instagram
+The app **never logs in to Instagram and never unfollows anyone**. It only shows you a list. You do any unfollowing yourself in the Instagram app.
 
-1. Instagram → **Settings** → **Accounts Center** → **Your information and permissions** → **Download your information**.
-2. Choose **Some of your information** and select **Followers and following** only.
-3. Pick **Download to device**, set **Format: JSON** and **Date range: All time**.
-4. Wait for the email from Instagram (anywhere from minutes to a few hours), then download the `.zip`.
+## Privacy
 
-The files we need are in the archive at:
+- **No network access.** The app runs in the macOS App Sandbox without the network permission, so macOS itself blocks it from connecting to anything.
+- **Only the files you pick.** It can read only the export you drop or choose, and write only where you save a CSV.
+- **Nothing is uploaded or collected.** The only thing it stores is the list of usernames you've ticked off, kept in the app's local preferences.
+
+Your export contains personal data, so keep it out of git. The `.gitignore` already excludes `data/`, `*.zip` and the export's JSON files. Keeping exports in `data/` is the safest option.
+
+## Getting your Instagram export
+
+1. In Instagram, go to **Settings → Accounts Center → Your information and permissions → Download your information**.
+2. Choose **Some of your information** and select only **Followers and following**.
+3. Pick **Download to device**, with **Format: JSON** and **Date range: All time**.
+4. Wait for Instagram's email (anywhere from minutes to a few hours), then download the `.zip`.
+
+The app reads these files from the archive:
 
 ```
 connections/followers_and_following/
-├── followers_1.json   (can be split into followers_2.json, … for large accounts)
+├── followers_1.json   (large accounts get followers_2.json, … too)
 └── following.json
 ```
 
-## Using the app
+If you picked **HTML** instead of JSON, the app will tell you. Request the export again in JSON.
 
-- The sidebar has **Not Following Back** (accounts you follow that don't follow you), **Fans** (the reverse), plus everyone you follow and everyone who follows you.
-- Search, and sort by username or date (when you followed them, or when they followed you).
-- Double-click a row, or click **Open Profile**, to open the profile in your browser. Then unfollow in Instagram yourself.
-- Tick the circle next to an account as you deal with it. Progress is shown at the top, and your ticks are remembered between launches.
-- Right-click rows to copy usernames or mark several as done. Use **Export CSV** in the toolbar to save the list.
+## Install
 
-## Building
+There are no prebuilt downloads. You build it yourself, which takes about a minute.
 
-Requires macOS 14+ and the Xcode Command Line Tools (`xcode-select --install`). Full Xcode is not needed.
+**Requirements:** macOS 14 or later, and the Xcode Command Line Tools (full Xcode isn't needed):
 
 ```bash
-./scripts/build-app.sh          # builds "build/IG Follow Audit.app"
-open "build/IG Follow Audit.app"
-./scripts/test.sh                # runs the tests
+xcode-select --install
 ```
 
-Drag the `.app` into `/Applications` if you like. It is ad-hoc signed, not notarized, so if macOS refuses to open it the first time, right-click it and choose **Open**.
+**Build and run:**
 
-### Project layout
+```bash
+git clone https://github.com/n1soryu/ig-follow-audit.git
+cd ig-follow-audit
+./scripts/build-app.sh
+open "build/IG Follow Audit.app"
+```
+
+You can drag `build/IG Follow Audit.app` into `/Applications`. The app is about 2 MB.
+
+It's ad-hoc signed, not notarized by Apple. If macOS won't open it the first time, right-click the app and choose **Open**.
+
+## Using the app
+
+1. Drop your export `.zip` (or the folder you extracted it to) onto the window, or click **Choose File…** (⌘O).
+2. Pick a list in the sidebar.
+3. Click **Open** (or double-click a row) to open the profile in your browser, then deal with it in Instagram.
+4. Click the circle next to an account to mark it done. Right-click selected rows to copy usernames or mark several at once.
+5. Use **Export CSV** in the toolbar to save the current list. Close the export with the ✕ at the bottom of the sidebar (⇧⌘W).
+
+## How it works
+
+- **Parsing:** Instagram has changed the export's layout over time. Older files put the username in `value`. Newer `following.json` files put it in `title`, with links like `instagram.com/_u/name`. The parser handles both and falls back to the profile link. Usernames are compared case-insensitively.
+- **Reading the `.zip`:** a small built-in reader using Apple's Compression framework. No third-party dependencies, and no need to extract the archive first.
+- **Comparison:** set difference in both directions, de-duplicated. Order follows the export.
+
+## Development
 
 ```
 Sources/FollowAuditCore/   export parsing, .zip reading, comparison (no UI)
 Sources/IGFollowAudit/     the SwiftUI app
 Tests/                     tests; fake exports are generated at runtime
-Resources/                 Info.plist and sandbox entitlements
-scripts/build-app.sh       packages the .app
+Resources/                 Info.plist, sandbox entitlements, app icon
+docs/screenshots/          README screenshots (sample data)
+scripts/build-app.sh       builds and signs the .app
+scripts/test.sh            runs the tests
 scripts/make-icon.swift    regenerates Resources/AppIcon.icns
 ```
 
-Screenshots use generated sample data, not real accounts. In debug builds, `IGFA_SNAPSHOT=<dir> IGFA_EXPORT=<export> swift run` renders the window to PNGs, which is handy for checking UI changes.
+```bash
+./scripts/test.sh   # 14 tests
+swift run           # debug build, no sandbox
+```
 
-## Project status
+Quirks of building with only the Command Line Tools:
 
-- [x] Repository setup
-- [x] Parse followers / following from the JSON export (old and new Instagram layouts)
-- [x] Compute non-followers-back (and fans)
-- [x] Mac app: drag and drop, search, sort, open profiles, Done tracking, CSV export
-- [x] Tests with fake export data
-- [x] App icon
+- **Use `./scripts/test.sh`, not plain `swift test`.** Plain `swift test` sometimes can't find the Swift Testing plugin. The script passes its path explicitly.
+- **There's no `@State` in the views.** On current SDKs, SwiftUI's `@State` is a macro whose plugin only ships with full Xcode, so view state lives in the `@Observable` `AppModel` instead.
 
-## Privacy note
+**UI snapshots:** debug builds can render the window to PNGs (light and dark) without Screen Recording permission. The screenshots above were made this way:
 
-Your Instagram export contains personal data. The `.gitignore` excludes `data/`, `*.zip`, and the export JSON files so you don't accidentally commit them. **Keep your exports in `data/`.**
+```bash
+IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/sample-export swift run
+```
+
+## Known limitations
+
+- Not yet tested with a real Instagram export.
+- macOS only.
+- If Instagram changes the export format again, parsing may break.
+- No notarization, so you get Gatekeeper's first-launch prompt.
+
+## How this was made
+
+This project was built in a few conversational sessions with [Claude Code](https://claude.com/claude-code), Anthropic's AI coding assistant. The owner described what they wanted: an offline Mac app based only on the official export, then a nicer UI and an icon. The AI planned it, wrote and tested the code, designed the UI and icon, wrote the docs and made the commits. Commits carry a `Co-Authored-By: Claude` trailer.
+
+What was actually checked:
+
+- The automated tests pass. They use generated fake exports in both Instagram layouts, plus zip and folder variants and error cases.
+- The app builds, launches, and runs sandboxed.
+- The UI was checked using rendered screenshots of sample data.
+
+What was **not** done: a human code review, testing with a real export, or testing on other Macs and macOS versions. Treat it accordingly.
 
 ## Credits
 
-App icon glyph: [Lucide](https://lucide.dev) "user-round-search", ISC License (see `Resources/Icon/LUCIDE-LICENSE.txt`).
+- App icon glyph: [Lucide](https://lucide.dev) "user-round-search", ISC License (see [`Resources/Icon/LUCIDE-LICENSE.txt`](Resources/Icon/LUCIDE-LICENSE.txt)).
+- Not affiliated with, endorsed by, or connected to Instagram or Meta. "Instagram" is a trademark of Meta Platforms, Inc.
 
 ## License
 
