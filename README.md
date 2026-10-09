@@ -13,12 +13,14 @@ The tool reads your exported data and gives you a plain list. You do the unfollo
 ## How it works
 
 1. Request your data from Instagram (see below).
-2. Point the tool at the downloaded `.zip` (or the extracted folder).
-3. It compares `following` with `followers` and prints everyone you follow who doesn't follow you back.
+2. Open **IG Follow Audit** and drop the downloaded `.zip` (or the extracted folder) onto the window.
+3. It compares `following` with `followers` and lists everyone you follow who doesn't follow you back.
 
 ```
 following  −  followers  =  people who don't follow you back
 ```
+
+The app is a native macOS app (SwiftUI), about 600 KB. It runs in the macOS App Sandbox **with no network permission**, so the system itself prevents it from sending anything anywhere.
 
 ## Getting your data from Instagram
 
@@ -35,21 +37,44 @@ connections/followers_and_following/
 └── following.json
 ```
 
-## Usage
+## Using the app
 
-> 🚧 Work in progress, coming soon.
+- **Not Following Back** lists accounts you follow that don't follow you. **Fans** lists the reverse.
+- Search, and sort by username or date (when you followed them, or when they followed you).
+- Double-click a row, or click **Open Profile**, to open the profile in your browser. Then unfollow in Instagram yourself.
+- Tick **Done** as you go. Your ticks are remembered between launches.
+- Right-click rows to copy usernames or mark several as done. Use **Export CSV** in the toolbar to save the list.
+
+## Building
+
+Requires macOS 14+ and the Xcode Command Line Tools (`xcode-select --install`). Full Xcode is not needed.
 
 ```bash
-python3 -m ig_follow_audit path/to/instagram-export.zip
+./scripts/build-app.sh          # builds "build/IG Follow Audit.app"
+open "build/IG Follow Audit.app"
+swift test                      # runs the tests
+```
+
+Drag the `.app` into `/Applications` if you like. It is ad-hoc signed, not notarized, so if macOS refuses to open it the first time, right-click it and choose **Open**.
+
+### Project layout
+
+```
+Sources/FollowAuditCore/   export parsing, .zip reading, comparison (no UI)
+Sources/IGFollowAudit/     the SwiftUI app
+Tests/                     tests; fake exports are generated at runtime
+Resources/                 Info.plist and sandbox entitlements
+scripts/build-app.sh       packages the .app
 ```
 
 ## Project status
 
 - [x] Repository setup
-- [ ] Parse followers / following from the JSON export
-- [ ] Compute non-followers-back
-- [ ] CLI output (plain list + optional CSV / clickable profile links)
-- [ ] Tests with sample (fake) export data
+- [x] Parse followers / following from the JSON export (old and new Instagram layouts)
+- [x] Compute non-followers-back (and fans)
+- [x] Mac app: drag and drop, search, sort, open profiles, Done tracking, CSV export
+- [x] Tests with fake export data
+- [ ] App icon
 
 ## Privacy note
 
