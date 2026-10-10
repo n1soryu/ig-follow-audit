@@ -10,6 +10,12 @@ Groundwork for **snapshot history**: keeping each imported export inside the app
 
 - Snapshots: a saved copy of an export's followers and following lists, with the date it was imported and the date the data was taken. The second date starts as a guess (the newest follow date in the export) and can be corrected.
 - A snapshot store that keeps one JSON file per snapshot in the app's own Application Support folder. It skips importing the same export twice, and leaves damaged files, or files saved by a newer version of the app, untouched instead of deleting them.
+- Comparing snapshots: new followers, lost followers, accounts you followed or unfollowed, new and lost mutuals, followers who came back after leaving, and followers who left soon after following you.
+- Snapshot history: follower, following and mutual counts over time (for a growth chart) and a "since last time" summary.
+
+### Known limitation
+
+Instagram's export only identifies accounts by username. If someone renames their account between two exports, they'll show up as one account unfollowing you and a new one following you.
 
 ## [1.0.1] - 2026-10-09
 
