@@ -78,3 +78,33 @@ public enum ExportLoader {
         )
     }
 }
+
+// MARK: - When the export was taken
+
+extension ExportLoader {
+    /// A best guess at when Instagram produced the export at `url`.
+    ///
+    /// Instagram's download names usually include the date, like
+    /// `instagram-name-2026-10-10-AbC123.zip`, so that comes first. Otherwise
+    /// the file's creation date, which is roughly when it was downloaded or
+    /// extracted. Neither can be earlier than the newest follow in the data.
+    public static func estimatedCaptureDate(for url: URL, audit: Audit) -> Date? {
+        let newestFollow = Snapshot.suggestedCaptureDate(following: audit.following, followers: audit.followers)
+        let hint = date(inFileName: url.deletingPathExtension().lastPathComponent)
+            ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate)
+        return [hint, newestFollow].compactMap { $0 }.max()
+    }
+
+    /// The first `YYYY-MM-DD` in a file name, as midday UTC so it shows as the
+    /// same day in any time zone.
+    static func date(inFileName name: String) -> Date? {
+        guard let match = name.firstMatch(of: /(\d{4})-(\d{2})-(\d{2})/),
+              let year = Int(match.1), let month = Int(match.2), let day = Int(match.3)
+        else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let components = DateComponents(year: year, month: month, day: day, hour: 12)
+        guard components.isValidDate(in: calendar), (2010...2100).contains(year) else { return nil }
+        return calendar.date(from: components)
+    }
+}

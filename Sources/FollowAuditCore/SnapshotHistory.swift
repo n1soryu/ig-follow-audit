@@ -43,6 +43,17 @@ public struct SnapshotHistory: Sendable {
         snapshots.count < 2 ? nil : diff(endingAt: snapshots.count - 1)
     }
 
+    /// What changed between the given snapshot and the one before it.
+    /// `nil` for the oldest snapshot, which has nothing to compare with.
+    public func diff(to id: Snapshot.ID) -> SnapshotDiff? {
+        guard let index = snapshots.firstIndex(where: { $0.id == id }), index > 0 else { return nil }
+        return diff(endingAt: index)
+    }
+
+    public func snapshot(id: Snapshot.ID) -> Snapshot? {
+        snapshots.first { $0.id == id }
+    }
+
     private func diff(endingAt index: Int) -> SnapshotDiff {
         SnapshotDiff(from: snapshots[index - 1], to: snapshots[index], earlier: Array(snapshots[..<(index - 1)]))
     }
