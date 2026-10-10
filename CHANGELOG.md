@@ -4,14 +4,22 @@ All notable changes to IG Follow Audit. Versions follow [Semantic Versioning](ht
 
 ## [Unreleased]
 
-Groundwork for **snapshot history**: keeping each imported export inside the app, so you can delete the `.zip` afterwards and later see who followed or unfollowed you between exports. Nothing in the app uses this yet.
+**Snapshot history.** Every export you import is now kept inside the app, so you can delete the `.zip` afterwards. Import a new export every few weeks to see who followed and unfollowed you in between.
 
 ### Added
 
-- Snapshots: a saved copy of an export's followers and following lists, with the date it was imported and the date the data was taken. The second date starts as a guess (the newest follow date in the export) and can be corrected.
-- A snapshot store that keeps one JSON file per snapshot in the app's own Application Support folder. It skips importing the same export twice, and leaves damaged files, or files saved by a newer version of the app, untouched instead of deleting them.
-- Comparing snapshots: new followers, lost followers, accounts you followed or unfollowed, new and lost mutuals, followers who came back after leaving, and followers who left soon after following you.
-- Snapshot history: follower, following and mutual counts over time (for a growth chart) and a "since last time" summary.
+- **Overview page:** follower, following, mutual and not-following-back counts, each with its change since the previous export, then a "since last time" summary and a chart of followers over time. Followers who came back after unfollowing you, and followers who left within a month of following you, are listed by name.
+- **New Followers** and **Unfollowed You** lists in the sidebar, once you have two or more exports.
+- **Snapshots page:** every import with its counts. Fix an export's date if the app guessed it wrong, view an older snapshot, or delete one. The menu at the bottom of the sidebar also switches between snapshots.
+- **Backups:** **File → Back Up History…** saves every snapshot and tick to one file, and **Restore History…** merges a backup back in, skipping snapshots already there. Useful when moving to a new Mac, since the app holds the only copy once the `.zip` files are gone.
+- A reminder on the Overview once your latest export is a month old, and **File → How to Get an Export…** with the steps.
+- **Delete All Data…** on the Snapshots page.
+- The app guesses when each export was taken: the date in Instagram's file name (`instagram-name-YYYY-MM-DD-…`), else the file's creation date, never earlier than the newest follow in the data. Importing the same export twice is detected and skipped.
+
+### Changed
+
+- The app opens straight to your latest snapshot instead of the drop screen. **Close Export** (⇧⌘W) is gone, since there's nothing to close.
+- Ticked-off accounts moved from the app's preferences into `state.json` beside the snapshots, so backups include them. Existing ticks are moved over automatically on first launch.
 
 ### Known limitation
 

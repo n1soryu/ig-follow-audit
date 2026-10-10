@@ -24,6 +24,7 @@ struct WelcomeView: View {
             dropZone
             steps
             privacyBadge
+            restoreLink
         }
         .padding(.horizontal, 40)
         .padding(.vertical, 32)
@@ -40,7 +41,7 @@ struct WelcomeView: View {
                 .frame(width: 96, height: 96)
             Text("IG Follow Audit")
                 .font(.system(size: 34, weight: .bold))
-            Text("See who doesn't follow you back, privately, right on your Mac.")
+            Text("Keep track of who follows you, privately, right on your Mac.")
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
@@ -65,7 +66,7 @@ struct WelcomeView: View {
                     .foregroundStyle(.secondary)
             }
             Button {
-                model.isImporterPresented = true
+                model.presentExportImporter()
             } label: {
                 Label("Choose File…", systemImage: "folder")
                     .padding(.horizontal, 6)
@@ -102,26 +103,41 @@ struct WelcomeView: View {
             Text("How to get your export")
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                StepCard(number: 1, systemImage: "gearshape", title: "Open Settings",
-                         detail: "In Instagram: Accounts Center → Your information and permissions.")
-                StepCard(number: 2, systemImage: "arrow.down.circle", title: "Download your info",
-                         detail: "Choose Some of your information → Followers and following.")
-                StepCard(number: 3, systemImage: "curlybraces", title: "Pick JSON",
-                         detail: "Download to device, Format: JSON, Date range: All time.")
-                StepCard(number: 4, systemImage: "envelope", title: "Check your email",
-                         detail: "Download the .zip Instagram sends you and drop it above.")
-            }
+            ExportSteps()
         }
     }
 
+    private var restoreLink: some View {
+        Button("Moving from another Mac? Restore a history backup…") {
+            model.presentHistoryImporter()
+        }
+        .buttonStyle(.link)
+        .font(.callout)
+    }
+
     private var privacyBadge: some View {
-        Label("Private by design: no network access, nothing leaves your Mac.", systemImage: "lock.shield.fill")
+        Label("Private by design: no network access. Your history is stored only on this Mac.", systemImage: "lock.shield.fill")
             .font(.callout)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(.regularMaterial, in: Capsule())
+    }
+}
+
+/// The four steps for requesting an export from Instagram.
+struct ExportSteps: View {
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+            StepCard(number: 1, systemImage: "gearshape", title: "Open Settings",
+                     detail: "In Instagram: Accounts Center → Your information and permissions.")
+            StepCard(number: 2, systemImage: "arrow.down.circle", title: "Download your info",
+                     detail: "Choose Some of your information → Followers and following.")
+            StepCard(number: 3, systemImage: "curlybraces", title: "Pick JSON",
+                     detail: "Download to device, Format: JSON, Date range: All time.")
+            StepCard(number: 4, systemImage: "envelope", title: "Check your email",
+                     detail: "Download the .zip Instagram sends you and import it here.")
+        }
     }
 }
 

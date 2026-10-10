@@ -21,11 +21,14 @@ struct IGFollowAuditApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Open Export…") { model.isImporterPresented = true }
+                Button("Import Export…") { model.presentExportImporter() }
                     .keyboardShortcut("o")
-                Button("Close Export") { model.close() }
-                    .keyboardShortcut("w", modifiers: [.command, .shift])
-                    .disabled(model.audit == nil)
+                Button("How to Get an Export…") { model.isShowingExportSteps = true }
+                Divider()
+                Button("Back Up History…") { model.backUpHistory() }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                    .disabled(model.history.snapshots.isEmpty)
+                Button("Restore History…") { model.presentHistoryImporter() }
             }
         }
     }

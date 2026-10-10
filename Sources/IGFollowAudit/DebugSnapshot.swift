@@ -6,7 +6,10 @@ import FollowAuditCore
 ///
 ///     IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/export swift run
 ///
-/// renders the window to PNGs (light and dark) and quits. Debug builds only.
+/// renders the window to PNGs (light and dark) and quits. `IGFA_EXPORT` can
+/// list several exports separated by `:`, imported oldest first, to fill the
+/// history. These runs use a temporary data folder, never your saved data.
+/// Debug builds only.
 enum DebugSnapshot {
     @MainActor static func runIfRequested(model: AppModel) {
         let env = ProcessInfo.processInfo.environment
@@ -21,16 +24,33 @@ enum DebugSnapshot {
             if let icon = NSImage(contentsOfFile: "Resources/Icon/AppIcon-1024.png") {
                 NSApp.applicationIconImage = icon
             }
+            try? await Task.sleep(for: .seconds(0.5))
+            // IGFA_WINDOW=1000x1400 renders at a custom size, e.g. to see below the fold.
+            if let size = env["IGFA_WINDOW"]?.split(separator: "x").compactMap({ Double($0) }), size.count == 2 {
+                NSApp.windows.first(where: \.isVisible)?.setContentSize(NSSize(width: size[0], height: size[1]))
+            }
             try? await Task.sleep(for: .seconds(1.5))
             await capture(model: model, to: "\(outDir)/welcome")
 
-            if let export = env["IGFA_EXPORT"] {
-                model.open(URL(fileURLWithPath: export))
-                try? await Task.sleep(for: .seconds(1.5))
+            if let exports = env["IGFA_EXPORT"] {
+                for export in exports.split(separator: ":") {
+                    model.open(URL(fileURLWithPath: String(export)))
+                    while model.isLoading { try? await Task.sleep(for: .milliseconds(100)) }
+                    model.message = nil
+                }
+                try? await Task.sleep(for: .seconds(1))
+                await capture(model: model, to: "\(outDir)/overview")
+
+                model.page = .list(.notFollowingBack)
+                try? await Task.sleep(for: .seconds(0.5))
                 model.setDone(true, for: model.currentAccounts.prefix(3).map(\.username))
                 try? await Task.sleep(for: .seconds(0.5))
                 await capture(model: model, to: "\(outDir)/results")
                 model.setDone(false, for: model.currentAccounts.prefix(3).map(\.username))
+
+                model.page = .snapshots
+                try? await Task.sleep(for: .seconds(0.5))
+                await capture(model: model, to: "\(outDir)/snapshots")
             }
             NSApp.terminate(nil)
         }
@@ -42,13 +62,15 @@ enum DebugSnapshot {
             try? await Task.sleep(for: .seconds(1.5))
             log("opening export")
             model.open(export)
-            while model.audit == nil && model.loadError == nil { try? await Task.sleep(for: .milliseconds(100)) }
-            if let error = model.loadError { log("load failed: \(error.message)"); exit(1) }
+            try? await Task.sleep(for: .milliseconds(100))
+            while model.isLoading { try? await Task.sleep(for: .milliseconds(100)) }
+            guard model.audit != nil else { log("load failed: \(model.message?.text ?? "unknown")"); exit(1) }
+            model.message = nil
             log("loaded")
 
             for kind in AppModel.ListKind.allCases {
                 log("switching to \(kind.title)")
-                model.listKind = kind
+                model.page = .list(kind)
                 try? await Task.sleep(for: .seconds(0.5))
                 guard let table = NSApp.windows.first(where: \.isVisible)?.contentView.flatMap(findTable) else {
                     log("no table found"); exit(1)

@@ -8,9 +8,13 @@ struct ResultsView: View {
     var body: some View {
         NavigationSplitView {
             Sidebar()
-                .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 300)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 300)
         } detail: {
-            AccountList()
+            switch model.page {
+            case .overview: OverviewView()
+            case .list(let kind): AccountList(kind: kind)
+            case .snapshots: SnapshotsView()
+            }
         }
     }
 }
@@ -21,52 +25,79 @@ private struct Sidebar: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        List(selection: Binding(get: { model.listKind }, set: { if let kind = $0 { model.listKind = kind } })) {
+        List(selection: Binding(get: { model.page }, set: { if let page = $0 { model.page = page } })) {
+            Label("Overview", systemImage: "square.grid.2x2")
+                .tag(AppModel.Page.overview)
             Section("Review") {
                 row(.notFollowingBack)
                 row(.fans)
+            }
+            if let diff = model.diff {
+                Section("Since \(diff.from.capturedAt.formatted(date: .abbreviated, time: .omitted))") {
+                    row(.newFollowers)
+                    row(.lostFollowers)
+                }
             }
             Section("Everyone") {
                 row(.following)
                 row(.followers)
             }
+            Section("History") {
+                Label("Snapshots", systemImage: "clock.arrow.circlepath")
+                    .badge(model.history.snapshots.count)
+                    .tag(AppModel.Page.snapshots)
+            }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) { source }
+        .safeAreaInset(edge: .bottom) { snapshotPicker }
     }
 
     private func row(_ kind: AppModel.ListKind) -> some View {
         Label(kind.title, systemImage: kind.systemImage)
             .badge(model.accounts(in: kind).count)
-            .tag(kind)
+            .tag(AppModel.Page.list(kind))
     }
 
-    /// The loaded export, with a button to close it.
-    private var source: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "doc.zipper")
-                .font(.title3)
-                .foregroundStyle(Theme.gradient)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(model.sourceName ?? "Export")
-                    .font(.callout.weight(.medium))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text("Loaded export")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    /// Which snapshot is being viewed, with a menu to switch to another.
+    private var snapshotPicker: some View {
+        Menu {
+            ForEach(model.history.snapshots.reversed()) { snapshot in
+                Button {
+                    model.viewedSnapshotID = snapshot.id == model.history.latest?.id ? nil : snapshot.id
+                } label: {
+                    if snapshot.id == model.currentSnapshot?.id {
+                        Label(snapshot.capturedAt.formatted(date: .long, time: .omitted), systemImage: "checkmark")
+                    } else {
+                        Text(snapshot.capturedAt.formatted(date: .long, time: .omitted))
+                    }
+                }
             }
-            Spacer(minLength: 0)
-            Button {
-                model.close()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
+            Divider()
+            Button("Import Export…") { model.presentExportImporter() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar")
                     .font(.title3)
+                    .foregroundStyle(Theme.gradient)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(model.currentSnapshot?.capturedAt.formatted(date: .abbreviated, time: .omitted) ?? "No data")
+                        .font(.callout.weight(.medium))
+                        .lineLimit(1)
+                    Text(model.isViewingLatest ? "Latest snapshot" : "Older snapshot")
+                        .font(.caption)
+                        .foregroundStyle(model.isViewingLatest ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.plain)
-            .help("Close this export (⇧⌘W)")
+            .contentShape(Rectangle())
         }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .help("Choose which snapshot to look at")
         .padding(10)
         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .padding(10)
@@ -79,7 +110,7 @@ private struct AccountList: View {
     @Environment(AppModel.self) private var model
     @Environment(\.openURL) private var openURL
 
-    private var kind: AppModel.ListKind { model.listKind }
+    let kind: AppModel.ListKind
 
     private var rows: [Account] {
         let accounts = model.currentAccounts
@@ -191,7 +222,7 @@ private struct AccountList: View {
         // A fresh table per list, search and sort. Diffing thousands of rows into an
         // existing, scrolled table makes AppKit warn about reentrant delegate calls
         // (a future assert). Tables only create visible rows, so rebuilding is cheap.
-        .id(TableIdentity(kind: kind, search: model.search, sortOrder: model.sortOrder))
+        .id(TableIdentity(kind: kind, snapshot: model.currentSnapshot?.id, search: model.search, sortOrder: model.sortOrder))
         .contextMenu(forSelectionType: Account.ID.self) { ids in
             if !ids.isEmpty {
                 Button(ids.count == 1 ? "Open Profile" : "Open \(ids.count) Profiles") { openProfiles(ids) }
@@ -231,6 +262,7 @@ private struct AccountList: View {
 
 private struct TableIdentity: Hashable {
     let kind: AppModel.ListKind
+    let snapshot: Snapshot.ID?
     let search: String
     let sortOrder: [KeyPathComparator<Account>]
 }
@@ -255,17 +287,6 @@ private struct DoneButton: View {
         }
         .buttonStyle(.plain)
         .help(isDone ? "Mark as not done" : "Mark as done")
-    }
-}
-
-private extension View {
-    /// The list's title is already shown large in the header, so don't repeat it in the toolbar.
-    @ViewBuilder func hidingToolbarTitle() -> some View {
-        if #available(macOS 15, *) {
-            toolbar(removing: .title)
-        } else {
-            self
-        }
     }
 }
 

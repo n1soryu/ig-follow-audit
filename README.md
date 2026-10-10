@@ -37,6 +37,7 @@ following  −  followers  =  people who don't follow you back
 - **Not Following Back:** accounts you follow that don't follow you.
 - **Fans:** accounts that follow you that you don't follow back.
 - **Following / Followers:** the full lists.
+- **History:** every export you import is saved as a snapshot inside the app, so you can delete the `.zip` afterwards. Import a new export every few weeks and the **Overview** shows who followed and unfollowed you since last time, who came back, who left soon after following, and a chart of your followers over time.
 - Search, sort by name or date, and tick accounts off as you go. Progress is saved between launches.
 - Open a profile in your browser, copy usernames, or export any list as CSV.
 
@@ -48,8 +49,9 @@ The app **never logs in to Instagram and never unfollows anyone**. It only shows
 ## Privacy
 
 - **No network access.** The app runs in the macOS App Sandbox without the network permission, so macOS itself blocks it from connecting to anything.
-- **Only the files you pick.** It can read only the export you drop or choose, and write only where you save a CSV.
-- **Nothing is uploaded or collected.** The only thing it stores is the list of usernames you've ticked off, kept in the app's local preferences.
+- **Only the files you pick.** It can read only the export you drop or choose, and write only where you save a CSV or backup.
+- **Nothing is uploaded or collected.** The app stores your snapshots (the follower and following lists from each export you import) and the usernames you've ticked off. They're kept as JSON files in the app's own sandbox folder, `~/Library/Containers/<bundle id>/Data/Library/Application Support/IG Follow Audit/`, and never leave your Mac. **Snapshots → Show in Finder** opens that folder, and **Delete All Data…** removes everything.
+- **Back it up yourself.** Once you've deleted the export `.zip` files, the app has the only copy of your history. Use **File → Back Up History…** (⇧⌘S) to save it all to one file, and **Restore History…** to bring it back on a new Mac. Restoring adds to what's already there and skips snapshots it already has.
 
 Your export contains personal data, so keep it out of git. The `.gitignore` already excludes `data/`, `*.zip` and the export's JSON files. Keeping exports in `data/` is the safest option.
 
@@ -103,22 +105,25 @@ This builds a universal app, about 2 MB, at `build/IG Follow Audit.app`. Apps yo
 
 ## Using the app
 
-1. Drop your export `.zip` (or the folder you extracted it to) onto the window, or click **Choose File…** (⌘O).
-2. Pick a list in the sidebar.
-3. Click **Open** (or double-click a row) to open the profile in your browser, then deal with it in Instagram.
+1. Drop your export `.zip` (or the folder you extracted it to) onto the window, or click **Choose File…** (⌘O). The app saves it as a snapshot. You can delete the `.zip` afterwards.
+2. **Overview** shows your counts, what changed since the previous snapshot, and your follower growth. Each number links to its list.
+3. Pick a list in the sidebar. Click **Open** (or double-click a row) to open the profile in your browser, then deal with it in Instagram.
 4. Click the circle next to an account to mark it done. Right-click selected rows to copy usernames or mark several at once.
-5. Use **Export CSV** in the toolbar to save the current list. Close the export with the ✕ at the bottom of the sidebar (⇧⌘W).
+5. Use **Export CSV** in the toolbar to save the current list.
+6. A few weeks later, request a new export and import it the same way (**File → How to Get an Export…** has the steps). The app reminds you once your latest export is a month old.
+7. **Snapshots** lists every import. If the app guessed an export's date wrong, click the date to fix it. The menu at the bottom of the sidebar switches to an older snapshot.
 
 ## How it works
 
 - **Parsing:** Instagram has changed the export's layout over time. Older files put the username in `value`. Newer `following.json` files put it in `title`, with links like `instagram.com/_u/name`. The parser handles both and falls back to the profile link. Usernames are compared case-insensitively.
 - **Reading the `.zip`:** a small built-in reader using Apple's Compression framework. No third-party dependencies, and no need to extract the archive first.
 - **Comparison:** set difference in both directions, de-duplicated. Order follows the export.
+- **Snapshots:** one JSON file per import, named by ID. Each records when it was imported and when the data was taken. The second is a guess: the date in Instagram's file name (`instagram-name-YYYY-MM-DD-…`), else the file's creation date, never earlier than the newest follow in the data. Importing the same export twice is detected by a fingerprint of its contents.
 
 ## Development
 
 ```
-Sources/FollowAuditCore/   export parsing, .zip reading, comparison (no UI)
+Sources/FollowAuditCore/   export parsing, .zip reading, comparison, snapshots and history (no UI)
 Sources/IGFollowAudit/     the SwiftUI app
 Tests/                     tests; fake exports are generated at runtime
 Resources/                 Info.plist, sandbox entitlements, app icon
@@ -130,8 +135,8 @@ scripts/make-icon.swift    regenerates Resources/AppIcon.icns
 ```
 
 ```bash
-./scripts/test.sh   # 14 tests
-swift run           # debug build, no sandbox
+./scripts/test.sh   # 42 tests
+swift run           # debug build, no sandbox (saves to ~/Library/Application Support/IG Follow Audit)
 ```
 
 Quirks of building with only the Command Line Tools:
@@ -145,6 +150,8 @@ Quirks of building with only the Command Line Tools:
 IGFA_SNAPSHOT=/tmp/shots IGFA_EXPORT=/path/to/sample-export swift run
 ```
 
+`IGFA_EXPORT` can list several exports separated by `:`, imported in order, to fill the history and the growth chart. `IGFA_WINDOW=1000x1400` renders at a custom size. These runs use a throwaway data folder, never your saved history. Set `IGFA_DATA_DIR` to point any debug run at a folder of your choice.
+
 **Scroll stress test:** debug builds can also load an export and scroll every list top to bottom, searching, sorting and ticking rows along the way. Use a large export, since problems only show up with thousands of rows:
 
 ```bash
@@ -154,6 +161,8 @@ IGFA_SCROLLTEST=1 IGFA_EXPORT=/path/to/export.zip swift run
 ## Known limitations
 
 - Deactivated accounts can't be detected or filtered out (see the note under [What it does](#what-it-does)).
+- The export only identifies accounts by username, so someone who renames their account between two exports shows up as one account unfollowing you and a new one following you.
+- Snapshot history is new and has only been tested with sample data.
 - Tested on one person's real export, on one Mac.
 - macOS only.
 - If Instagram changes the export format again, parsing may break.
