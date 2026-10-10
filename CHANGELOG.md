@@ -2,6 +2,15 @@
 
 All notable changes to IG Follow Audit. Versions follow [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+Groundwork for **snapshot history**: keeping each imported export inside the app, so you can delete the `.zip` afterwards and later see who followed or unfollowed you between exports. Nothing in the app uses this yet.
+
+### Added
+
+- Snapshots: a saved copy of an export's followers and following lists, with the date it was imported and the date the data was taken. The second date starts as a guess (the newest follow date in the export) and can be corrected.
+- A snapshot store that keeps one JSON file per snapshot in the app's own Application Support folder. It skips importing the same export twice, and leaves damaged files, or files saved by a newer version of the app, untouched instead of deleting them.
+
 ## [1.0.1] - 2026-10-09
 
 A bug-fix release. **If you're on 1.0.0, please update.** 1.0.0 can crash as soon as you scroll a list.

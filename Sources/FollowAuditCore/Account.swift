@@ -1,7 +1,7 @@
 import Foundation
 
 /// One Instagram account from the export.
-public struct Account: Hashable, Identifiable, Sendable {
+public struct Account: Hashable, Identifiable, Codable, Sendable {
     /// Lowercased username, used as the identity for comparisons.
     public let username: String
     /// When the relationship started (you followed them, or they followed you), if the export says.
